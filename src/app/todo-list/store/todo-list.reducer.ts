@@ -6,10 +6,12 @@ import * as TodoListActions from './todo-list.actions';
 export const todoListFeatureKey = 'todoList';
 
 export interface State {
+  loading: boolean;
   todoList: Pagination<TodoItem>;
 }
 
 export const initialState: State = {
+  loading: false,
   todoList: {
     totalCount: 0,
     data: [],
@@ -28,5 +30,14 @@ export const reducer = createReducer(
       ...state,
       todoList: { ...action.todoList },
     };
-  })
+  }),
+
+  on(TodoListActions.loadingTodoList, (state) => ({
+    ...state,
+    loading: true
+  })),
+  on(TodoListActions.unloadingTodoList, (state) => ({
+    ...state,
+    loading: false
+  })),
 );

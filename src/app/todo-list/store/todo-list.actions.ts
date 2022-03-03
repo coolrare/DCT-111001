@@ -31,3 +31,11 @@ export const queryTodoList = createAction(
     pagination: PageChangeEvent
   }>()
 );
+
+export const loadingTodoList = createAction(
+  '[TodoList] Loading TodoList'
+);
+
+export const unloadingTodoList = createAction(
+  '[TodoList] Unloading TodoList'
+);

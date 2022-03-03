@@ -1,10 +1,9 @@
 import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import { EMPTY, of } from 'rxjs';
+import { concat, EMPTY, of } from 'rxjs';
 import { catchError, concatMap, map } from 'rxjs/operators';
 import { TodoListService } from '../todo-list.service';
 import * as TodoListActions from './todo-list.actions';
-
 
 @Injectable()
 export class TodoListEffects {
@@ -27,13 +26,24 @@ export class TodoListEffects {
     return this.actions$.pipe(
       ofType(TodoListActions.queryTodoList),
       concatMap((condition) =>
-        this.todoListService.getTodoList(
-          condition.keyword,
-          condition.pagination,
-          condition.sort
+        // 組合成一條 action stream
+        concat(
+          // loading action
+          of(TodoListActions.loadingTodoList()),
+          // 更新資料 action
+          this.todoListService
+            .getTodoList(
+              condition.keyword,
+              condition.pagination,
+              condition.sort
+            )
+            .pipe(
+              map((result) => TodoListActions.setTodoList({ todoList: result }))
+            ),
+          // unloading action
+          of(TodoListActions.unloadingTodoList())
         )
-      ),
-      map(result => TodoListActions.setTodoList({ todoList: result}))
+      )
     );
   });
 
