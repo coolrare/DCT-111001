@@ -1,4 +1,7 @@
 import { createAction, props } from '@ngrx/store';
+import { PageChangeEvent } from '../page-change-event';
+import { Pagination } from '../pagination';
+import { SortChangeEvent } from '../sort-change-event';
 import { TodoItem } from '../todo-item';
 
 export const loadTodoLists = createAction(
@@ -17,5 +20,14 @@ export const loadTodoListsFailure = createAction(
 
 export const setTodoList = createAction(
   '[TodoList] Load default TodoList',
-  props<{ todoList: TodoItem[]}>()
+  props<{ todoList: Pagination<TodoItem>}>()
+);
+
+export const queryTodoList = createAction(
+  '[TodoList] Query TodoList',
+  props<{
+    keyword: string,
+    sort: SortChangeEvent,
+    pagination: PageChangeEvent
+  }>()
 );

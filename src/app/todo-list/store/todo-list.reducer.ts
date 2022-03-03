@@ -26,10 +26,7 @@ export const reducer = createReducer(
   on(TodoListActions.setTodoList, (state, action) => {
     return {
       ...state,
-      todoList: {
-        totalCount: action.todoList.length,
-        data: [...action.todoList],
-      },
+      todoList: { ...action.todoList },
     };
   })
 );

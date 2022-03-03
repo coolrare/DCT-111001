@@ -1,12 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, combineLatest } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, map, switchMap } from 'rxjs/operators';
 import { PageChangeEvent } from './page-change-event';
 import { Pagination } from './pagination';
 import { SortChangeEvent } from './sort-change-event';
-import { setTodoList } from './store/todo-list.actions';
+import { queryTodoList, setTodoList } from './store/todo-list.actions';
 import { selectTodoList } from './store/todo-list.selectors';
 import { TodoItem } from './todo-item';
 import { TodoItemStatusChangeEvent } from './todo-item-status-change-event';
@@ -94,11 +94,24 @@ export class TodoListComponent implements OnInit {
       map(data => (data as any).todoList.todoList as Pagination<TodoItem>)
     ).subscribe(console.log);
     this.store.dispatch(setTodoList({
-      todoList: [
-        { id: '1', done: false, text: 'Todo 1', created: new Date().getTime() },
-        { id: '2', done: true, text: 'Todo 2', created: new Date().getTime() }
-      ]
+      todoList: {
+        totalCount: 2,
+        data: [
+          { id: '1', done: false, text: 'Todo 1', created: new Date().getTime() },
+          { id: '2', done: true, text: 'Todo 2', created: new Date().getTime() }
+        ]
+      }
     }));
+
+    combineLatest([this.refresh$, this.searchKeyword$, this.sort$, this.pagination$]).pipe(
+      debounceTime(0),
+    ).subscribe(([_, keyword, sort, pagination]) => {
+      this.store.dispatch(queryTodoList({
+        keyword,
+        sort,
+        pagination
+      }));
+    });
   }
 
   setSuggestList(keyword: string) {
