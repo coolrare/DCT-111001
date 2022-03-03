@@ -7,6 +7,7 @@ import { PageChangeEvent } from './page-change-event';
 import { Pagination } from './pagination';
 import { SortChangeEvent } from './sort-change-event';
 import { setTodoList } from './store/todo-list.actions';
+import { selectTodoList } from './store/todo-list.selectors';
 import { TodoItem } from './todo-item';
 import { TodoItemStatusChangeEvent } from './todo-item-status-change-event';
 import { TodoListAddDialogComponent } from './todo-list-add-dialog/todo-list-add-dialog.component';
@@ -69,9 +70,7 @@ export class TodoListComponent implements OnInit {
   //     }),
   //   );
 
-  todoListQuery$ = this.store.pipe(
-    map(data => (data as any).todoList.todoList as Pagination<TodoItem>)
-  )
+  todoListQuery$ = this.store.select(selectTodoList);
 
   todoList$ = this.todoListQuery$.pipe(
     map(result => result.data)
