@@ -1,11 +1,12 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { BehaviorSubject, combineLatest, of } from 'rxjs';
-import { catchError, debounceTime, distinctUntilChanged, filter, finalize, map, shareReplay, startWith, switchMap, tap } from 'rxjs/operators';
+import { Store } from '@ngrx/store';
+import { BehaviorSubject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, map, switchMap } from 'rxjs/operators';
 import { PageChangeEvent } from './page-change-event';
 import { Pagination } from './pagination';
 import { SortChangeEvent } from './sort-change-event';
+import { setTodoList } from './store/todo-list.actions';
 import { TodoItem } from './todo-item';
 import { TodoItemStatusChangeEvent } from './todo-item-status-change-event';
 import { TodoListAddDialogComponent } from './todo-list-add-dialog/todo-list-add-dialog.component';
@@ -49,24 +50,28 @@ export class TodoListComponent implements OnInit {
     pageSize: 10
   });
 
-  todoListQuery$ = combineLatest([this.refresh$, this.searchKeyword$, this.sort$, this.pagination$])
-    .pipe(
-      debounceTime(0),
-      tap(() => this.loading$.next(true)),
-      switchMap(([_, keyword, sort, pagination]) => this
-        .todoListService
-        .getTodoList(keyword, pagination, sort)
-        .pipe(
-          finalize(() => this.loading$.next(false))
-        )
-      ),
-      startWith(<Pagination<TodoItem>>{ totalCount: 0, data: [] }),
-      shareReplay(1),
-      catchError((error: HttpErrorResponse) => {
-        alert(error.error.message);
-        return of(<Pagination<TodoItem>>{ totalCount: 0, data: [] })
-      }),
-    );
+  // todoListQuery$ = combineLatest([this.refresh$, this.searchKeyword$, this.sort$, this.pagination$])
+  //   .pipe(
+  //     debounceTime(0),
+  //     tap(() => this.loading$.next(true)),
+  //     switchMap(([_, keyword, sort, pagination]) => this
+  //       .todoListService
+  //       .getTodoList(keyword, pagination, sort)
+  //       .pipe(
+  //         finalize(() => this.loading$.next(false))
+  //       )
+  //     ),
+  //     startWith(<Pagination<TodoItem>>{ totalCount: 0, data: [] }),
+  //     shareReplay(1),
+  //     catchError((error: HttpErrorResponse) => {
+  //       alert(error.error.message);
+  //       return of(<Pagination<TodoItem>>{ totalCount: 0, data: [] })
+  //     }),
+  //   );
+
+  todoListQuery$ = this.store.pipe(
+    map(data => (data as any).todoList.todoList as Pagination<TodoItem>)
+  )
 
   todoList$ = this.todoListQuery$.pipe(
     map(result => result.data)
@@ -80,11 +85,21 @@ export class TodoListComponent implements OnInit {
 
   constructor(
     private todoListService: TodoListService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private store: Store,
   ) {}
 
   ngOnInit(): void {
-    this.refreshTodoList();
+    // this.refreshTodoList();
+    this.store.pipe(
+      map(data => (data as any).todoList.todoList as Pagination<TodoItem>)
+    ).subscribe(console.log);
+    this.store.dispatch(setTodoList({
+      todoList: [
+        { id: '1', done: false, text: 'Todo 1', created: new Date().getTime() },
+        { id: '2', done: true, text: 'Todo 2', created: new Date().getTime() }
+      ]
+    }));
   }
 
   setSuggestList(keyword: string) {
