@@ -11,10 +11,10 @@
   (searchClick)="search($event)"></app-todo-list-search>
 
 <app-todo-list-table
-  [todoList]="todoList"
-  [pageIndex]="pagination.pageNumber"
-  [pageSize]="pagination.pageSize"
-  [totalCount]="totalCount"
+  [todoList]="(todoList$ | async)!"
+  [pageIndex]="(pagination$ | async)!.pageNumber"
+  [pageSize]="(pagination$ | async)!.pageSize"
+  [totalCount]="(totalCount$ | async)!"
   (refreshClick)="refresh()"
   (sortChange)="sortChange($event)"
   (pageChange)="pageChange($event)"
@@ -22,6 +22,6 @@
   (todoItemDelete)="todoItemDelete($event)"
 ></app-todo-list-table>
 
-<div class="todo-loading" *ngIf="loading">
+<div class="todo-loading" *ngIf="loading$ | async">
   <mat-spinner></mat-spinner>
 </div>

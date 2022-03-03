@@ -1,9 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
+import { BehaviorSubject, combineLatest, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, filter, finalize, map, shareReplay, startWith, switchMap, tap } from 'rxjs/operators';
 import { PageChangeEvent } from './page-change-event';
+import { Pagination } from './pagination';
 import { SortChangeEvent } from './sort-change-event';
 import { TodoItem } from './todo-item';
 import { TodoItemStatusChangeEvent } from './todo-item-status-change-event';
@@ -17,7 +18,7 @@ import { TodoListService } from './todo-list.service';
 })
 export class TodoListComponent implements OnInit {
   // suggestList: string[] = [];
-  keyword$ = new Subject<string>();
+  keyword$ = new BehaviorSubject<string>('');
   suggestList$ = this.keyword$.pipe(
     filter(keyword => keyword.length >= 3),
     debounceTime(300),
@@ -25,20 +26,57 @@ export class TodoListComponent implements OnInit {
     switchMap(keyword => this.todoListService.getSuggestList(keyword))
   );
 
-  totalCount = 0;
-  todoList: TodoItem[] = [];
+  // totalCount = 0;
+  // todoList: TodoItem[] = [];
 
-  keyword = '';
-  sort: SortChangeEvent = {
+  // keyword = '';
+  // sort: SortChangeEvent = {
+  //   sortColumn: 'created',
+  //   sortDirection: 'desc'
+  // };
+  // pagination: PageChangeEvent = {
+  //   pageNumber: 1,
+  //   pageSize: 10
+  // };
+  searchKeyword$ = new BehaviorSubject('');
+  refresh$ = new BehaviorSubject(null);
+  sort$ = new BehaviorSubject<SortChangeEvent>({
     sortColumn: 'created',
     sortDirection: 'desc'
-  };
-  pagination: PageChangeEvent = {
+  });
+  pagination$ = new BehaviorSubject<PageChangeEvent>({
     pageNumber: 1,
     pageSize: 10
-  };
+  });
 
-  loading = false;
+  todoListQuery$ = combineLatest([this.refresh$, this.searchKeyword$, this.sort$, this.pagination$])
+    .pipe(
+      debounceTime(0),
+      tap(() => this.loading$.next(true)),
+      switchMap(([_, keyword, sort, pagination]) => this
+        .todoListService
+        .getTodoList(keyword, pagination, sort)
+        .pipe(
+          finalize(() => this.loading$.next(false))
+        )
+      ),
+      startWith(<Pagination<TodoItem>>{ totalCount: 0, data: [] }),
+      shareReplay(1),
+      catchError((error: HttpErrorResponse) => {
+        alert(error.error.message);
+        return of(<Pagination<TodoItem>>{ totalCount: 0, data: [] })
+      }),
+    );
+
+  todoList$ = this.todoListQuery$.pipe(
+    map(result => result.data)
+  );
+  totalCount$ = this.todoListQuery$.pipe(
+    map(result => result.totalCount)
+  );
+
+  // loading = false;
+  loading$ = new BehaviorSubject(false);
 
   constructor(
     private todoListService: TodoListService,
@@ -57,28 +95,30 @@ export class TodoListComponent implements OnInit {
   }
 
   refreshTodoList() {
-    this.loading = true;
-    this.todoListService
-      .getTodoList(
-        this.keyword,
-        this.pagination,
-        this.sort
-      )
-      .subscribe({
-        next: (result) => {
-          this.totalCount = result.totalCount;
-          this.todoList = result.data;
-          this.loading = false;
-        },
-        error: (error: HttpErrorResponse) => {
-          alert(error.error.message);
-        },
-      });
+    this.refresh$.next(null);
+    // this.loading = true;
+    // this.todoListService
+    //   .getTodoList(
+    //     this.keyword,
+    //     this.pagination,
+    //     this.sort
+    //   )
+    //   .subscribe({
+    //     next: (result) => {
+    //       this.totalCount = result.totalCount;
+    //       this.todoList = result.data;
+    //       this.loading = false;
+    //     },
+    //     error: (error: HttpErrorResponse) => {
+    //       alert(error.error.message);
+    //     },
+    //   });
   }
 
   sortChange(event: SortChangeEvent) {
-    this.sort = { ...event };
-    this.refreshTodoList();
+    this.sort$.next({ ...event });
+    // this.sort = { ...event };
+    // this.refreshTodoList();
   }
 
   refresh() {
@@ -86,11 +126,15 @@ export class TodoListComponent implements OnInit {
   }
 
   pageChange(event: PageChangeEvent) {
-    this.pagination = {
+    this.pagination$.next({
       pageNumber: event.pageNumber + 1,
       pageSize : event.pageSize
-    };
-    this.refreshTodoList();
+    });
+    // this.pagination = {
+    //   pageNumber: event.pageNumber + 1,
+    //   pageSize : event.pageSize
+    // };
+    // this.refreshTodoList();
   }
 
   displayTodoDialog() {
@@ -107,21 +151,31 @@ export class TodoListComponent implements OnInit {
   }
 
   resetSortAndPage() {
-    this.sort = {
+    this.sort$.next({
       sortColumn: 'created',
       sortDirection: 'desc'
-    };
+    });
 
-    this.pagination = {
+    this.pagination$.next({
       pageNumber: 1,
       pageSize: 10
-    };
+    });
+    // this.sort = {
+    //   sortColumn: 'created',
+    //   sortDirection: 'desc'
+    // };
+
+    // this.pagination = {
+    //   pageNumber: 1,
+    //   pageSize: 10
+    // };
   }
 
   search(keyword: string) {
-    this.keyword = keyword;
+    this.searchKeyword$.next(keyword);
+    // this.keyword = keyword;
     this.resetSortAndPage();
-    this.refreshTodoList();
+    // this.refreshTodoList();
   }
 
   todoItemStatusChange(status: TodoItemStatusChangeEvent) {
