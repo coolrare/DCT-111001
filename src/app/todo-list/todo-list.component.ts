@@ -1,6 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 import { PageChangeEvent } from './page-change-event';
 import { SortChangeEvent } from './sort-change-event';
 import { TodoItem } from './todo-item';
@@ -14,7 +16,14 @@ import { TodoListService } from './todo-list.service';
   styleUrls: ['./todo-list.component.css'],
 })
 export class TodoListComponent implements OnInit {
-  suggestList: string[] = [];
+  // suggestList: string[] = [];
+  keyword$ = new Subject<string>();
+  suggestList$ = this.keyword$.pipe(
+    filter(keyword => keyword.length >= 3),
+    debounceTime(300),
+    distinctUntilChanged(),
+    switchMap(keyword => this.todoListService.getSuggestList(keyword))
+  );
 
   totalCount = 0;
   todoList: TodoItem[] = [];
@@ -41,9 +50,10 @@ export class TodoListComponent implements OnInit {
   }
 
   setSuggestList(keyword: string) {
-    this.todoListService.getSuggestList(keyword).subscribe((result) => {
-      this.suggestList = result;
-    });
+    this.keyword$.next(keyword);
+    // this.todoListService.getSuggestList(keyword).subscribe((result) => {
+    //   this.suggestList = result;
+    // });
   }
 
   refreshTodoList() {
