@@ -1,6 +1,8 @@
+import { initTodoList } from './store/todo-list.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { Store } from '@ngrx/store';
 import { BehaviorSubject, combineLatest, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, filter, finalize, map, shareReplay, startWith, switchMap, tap } from 'rxjs/operators';
 import { PageChangeEvent } from './page-change-event';
@@ -80,11 +82,21 @@ export class TodoListComponent implements OnInit {
 
   constructor(
     private todoListService: TodoListService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private store: Store
   ) {}
 
   ngOnInit(): void {
     this.refreshTodoList();
+
+    // read
+    this.store.subscribe(data => {
+      console.log(data);
+    });
+
+    // write
+    this.store.dispatch(initTodoList());
+
   }
 
   setSuggestList(keyword: string) {
